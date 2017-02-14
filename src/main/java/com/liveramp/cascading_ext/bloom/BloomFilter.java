@@ -1,28 +1,35 @@
 /**
- *  Copyright 2012 LiveRamp
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Copyright 2012 LiveRamp
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.liveramp.cascading_ext.bloom;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Writable;
+
 import com.liveramp.cascading_ext.FixedSizeBitSet;
 import com.liveramp.cascading_ext.hash.HashFunction;
 import com.liveramp.cascading_ext.hash.HashFunctionFactory;
-import org.apache.hadoop.fs.*;
-import org.apache.hadoop.io.Writable;
-
-import java.io.*;
 
 /**
  * This bloom filter implementation is based on the org.apache.hadoop.util.bloom.BloomFilter implementation, but was
@@ -46,10 +53,14 @@ public class BloomFilter implements Writable {
   }
 
   public BloomFilter(long vectorSize, int numHashes, FixedSizeBitSet bits, long numElems) {
+    this(vectorSize, numHashes, bits, numElems, HashFunctionFactory.DEFAULT_HASH_FACTORY);
+  }
+
+  public BloomFilter(long vectorSize, int numHashes, FixedSizeBitSet bits, long numElems, HashFunctionFactory hashFactory) {
     this.vectorSize = vectorSize;
     this.numHashes = numHashes;
     this.bits = bits;
-    this.hashFunction = HashFunctionFactory.DEFAULT_HASH_FACTORY.getFunction(vectorSize, numHashes);
+    this.hashFunction = hashFactory.getFunction(vectorSize, numHashes);
     this.numElems = numElems;
   }
 
@@ -83,7 +94,7 @@ public class BloomFilter implements Writable {
    *
    * @param key The key to test.
    * @return boolean True if the specified key belongs to <i>this</i> filter.
-   *         False otherwise.
+   * False otherwise.
    */
   public boolean membershipTest(byte[] key) {
     long[] h = hashFunction.hash(key);
@@ -109,6 +120,40 @@ public class BloomFilter implements Writable {
     return BloomUtil.getFalsePositiveRate(numHashes, getVectorSize(), numElems);
   }
 
+  /**
+   * Absorb elements from <i>other</i> into <i>this</i>. Membership test returns true
+   * if key belongs to either filter.
+   *
+   * @param other The filter to union-absorb into <i>this</i>.
+   */
+  public void absorbUnion(BloomFilter other) {
+    absorbCheck(other);
+    bits.or(other.bits);
+  }
+
+  /**
+   * Absorb elements only in both <i>other</i> and <i>this</i>. Membership test returns true
+   * if key belongs to both filter.
+   *
+   * @param other The filter to intersection-absorb into <i>this</i>.
+   */
+  public void absorbIntersection(BloomFilter other) {
+    absorbCheck(other);
+    bits.and(other.bits);
+  }
+
+  private void absorbCheck(final BloomFilter other) {
+    if (!hashFunction.getHashID().equals(other.hashFunction.getHashID())) {
+      throw new IllegalArgumentException("Incompatible hash functions " + hashFunction.getHashID() + " and " + other.hashFunction.getHashID());
+    }
+    if (numHashes != other.numHashes) {
+      throw new IllegalArgumentException("Incompatible number of hashes " + numHashes + " and " + other.numHashes);
+    }
+    if (vectorSize != other.vectorSize) {
+      throw new IllegalArgumentException("Incompatible vector size " + vectorSize + " and " + other.vectorSize);
+    }
+  }
+
   public static BloomFilter read(FileSystem fs, Path path) throws IOException {
     FSDataInputStream inputStream = fs.open(path);
     BloomFilter bf = new BloomFilter();
@@ -128,8 +173,10 @@ public class BloomFilter implements Writable {
     out.writeInt(this.numHashes);
     out.writeLong(this.vectorSize);
     out.writeLong(this.numElems);
-    out.writeBytes(this.hashFunction.getHashID() + "\n");
     out.write(this.bits.getRaw());
+    byte[] serializedHashFunction = SerializationUtils.serialize(this.hashFunction);
+    out.writeInt(serializedHashFunction.length);
+    out.write(serializedHashFunction);
   }
 
   @Override
@@ -137,15 +184,11 @@ public class BloomFilter implements Writable {
     numHashes = in.readInt();
     vectorSize = in.readLong();
     numElems = in.readLong();
-    String serilizedHashID = in.readLine();
-    hashFunction = HashFunctionFactory.DEFAULT_HASH_FACTORY.getFunction(vectorSize, numHashes);
-    if (!serilizedHashID.equals(hashFunction.getHashID())) {
-      throw new RuntimeException("bloom filter was written with hash type " + serilizedHashID +
-          " but current hash function type is " + hashFunction.getHashID() + "!");
-    }
-
     byte[] bytes = new byte[FixedSizeBitSet.getNumBytesToStore(vectorSize)];
     in.readFully(bytes);
     bits = new FixedSizeBitSet(vectorSize, bytes);
+    byte[] serializedHashFunction = new byte[in.readInt()];
+    in.readFully(serializedHashFunction);
+    hashFunction = (HashFunction)SerializationUtils.deserialize(serializedHashFunction);
   }
 }
