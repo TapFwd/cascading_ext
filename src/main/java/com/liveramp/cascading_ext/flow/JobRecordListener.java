@@ -1,22 +1,20 @@
 package com.liveramp.cascading_ext.flow;
 
-import java.io.IOException;
-import java.util.Map;
-
-import com.google.common.collect.Maps;
-import org.apache.hadoop.mapred.RunningJob;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import cascading.flow.FlowStep;
 import cascading.flow.FlowStepListener;
 import cascading.stats.hadoop.HadoopStepStats;
-
+import com.google.common.collect.Maps;
 import com.liveramp.cascading_ext.counters.Counters;
 import com.liveramp.cascading_ext.jobs.JobUtil;
 import com.liveramp.commons.collections.nested_map.TwoNestedMap;
 import com.liveramp.commons.state.LaunchedJob;
 import com.liveramp.commons.state.TaskSummary;
+import org.apache.hadoop.mapred.RunningJob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Map;
 
 public class JobRecordListener implements FlowStepListener {
   private static final Logger LOG = LoggerFactory.getLogger(JobRecordListener.class);
@@ -39,7 +37,7 @@ public class JobRecordListener implements FlowStepListener {
     try {
 
       HadoopStepStats hdStepStats = (HadoopStepStats)flowStep.getFlowStepStats();
-      RunningJob job = hdStepStats.getRunningJob();
+      RunningJob job = hdStepStats.getJobStatusClient();
 
       persister.onRunning(new LaunchedJob(job.getID().toString(),
           job.getJobName(),
@@ -60,8 +58,8 @@ public class JobRecordListener implements FlowStepListener {
   }
 
   private void recordStepData(HadoopStepStats hdStepStats) {
-
-    String jobID = hdStepStats.getJobID();
+    
+    String jobID = hdStepStats.getProcessStepID();
 
     try {
 
@@ -91,7 +89,7 @@ public class JobRecordListener implements FlowStepListener {
       LOG.info("Fetching task summaries...");
       TaskSummary taskSummary = JobUtil.getSummary(
           hdStepStats.getJobClient(),
-          hdStepStats.getRunningJob().getID(),
+          hdStepStats.getJobStatusClient().getID(),
           failed,
           counters
       );
@@ -133,7 +131,7 @@ public class JobRecordListener implements FlowStepListener {
   @Override
   public boolean onStepThrowable(FlowStep flowStep, Throwable throwable) {
     HadoopStepStats hdStepStats = (HadoopStepStats)flowStep.getFlowStepStats();
-    recordTaskErrors(hdStepStats, hdStepStats.getJobID(), true, new TwoNestedMap<String, String, Long>());
+    recordTaskErrors(hdStepStats, hdStepStats.getProcessStepID(), true, new TwoNestedMap<String, String, Long>());
     return false;
   }
 }

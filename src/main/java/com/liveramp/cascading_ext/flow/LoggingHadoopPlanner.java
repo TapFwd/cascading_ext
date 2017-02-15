@@ -16,13 +16,6 @@
 
 package com.liveramp.cascading_ext.flow;
 
-import java.io.IOException;
-import java.io.ObjectStreamException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.hadoop.mapred.JobConf;
-
 import cascading.flow.FlowConnector;
 import cascading.flow.FlowDef;
 import cascading.flow.FlowElement;
@@ -31,10 +24,16 @@ import cascading.flow.hadoop.HadoopFlow;
 import cascading.flow.hadoop.planner.HadoopPlanner;
 import cascading.flow.hadoop.util.HadoopUtil;
 import cascading.flow.hadoop.util.ObjectSerializer;
-import cascading.flow.planner.ElementGraph;
+import cascading.flow.planner.graph.FlowElementGraph;
 import cascading.operation.Operation;
 import cascading.pipe.Operator;
 import cascading.pipe.Pipe;
+import org.apache.hadoop.mapred.JobConf;
+
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoggingHadoopPlanner extends HadoopPlanner {
   private final FlowStepStrategy<JobConf> flowStepStrategy;
@@ -56,17 +55,17 @@ public class LoggingHadoopPlanner extends HadoopPlanner {
 
   @Override
   protected HadoopFlow createFlow( FlowDef flowDef ){
-    LoggingFlow flow = new LoggingFlow( getPlatformInfo(), getProperties(), getConfig(), flowDef , persister);
+    LoggingFlow flow = new LoggingFlow( getPlatformInfo(), getDefaultProperties(), getDefaultConfig(), flowDef , persister);
     flow.setFlowStepStrategy(flowStepStrategy);
     return flow;
   }
-
+  
   @Override
-  protected ElementGraph createElementGraph(FlowDef flowDef, Pipe[] pipes) {
-    final ElementGraph elementGraph = super.createElementGraph(flowDef, pipes);
-
+  protected FlowElementGraph createFlowElementGraph(FlowDef flowDef, Pipe[] pipes) {
+    final FlowElementGraph elementGraph = super.createFlowElementGraph(flowDef, pipes);
+  
     verifyAllOperationsAreSerializable(elementGraph);
-
+  
     return elementGraph;
   }
 
@@ -74,7 +73,7 @@ public class LoggingHadoopPlanner extends HadoopPlanner {
     super.initialize(flowConnector, properties);
   }
 
-  private void verifyAllOperationsAreSerializable(ElementGraph elementGraph) {
+  private void verifyAllOperationsAreSerializable(FlowElementGraph elementGraph) {
     for (FlowElement flowElement : elementGraph.vertexSet()) {
       if (flowElement instanceof Operator) {
         Operator operator = (Operator) flowElement;

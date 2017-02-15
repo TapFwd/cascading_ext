@@ -16,14 +16,6 @@
 
 package com.liveramp.cascading_ext.tap;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.UUID;
-
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.RecordReader;
-
 import cascading.flow.Flow;
 import cascading.flow.FlowListener;
 import cascading.flow.FlowProcess;
@@ -33,6 +25,13 @@ import cascading.tuple.Fields;
 import cascading.tuple.TupleEntry;
 import cascading.tuple.TupleEntryCollector;
 import cascading.tuple.TupleEntryIterator;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.RecordReader;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.UUID;
 
 /**
  * This tap sends output to the abyss. Use it if you never want to see your
@@ -41,13 +40,13 @@ import cascading.tuple.TupleEntryIterator;
  * Usage:
  * Tap sink = new NullTap();
  */
-public class NullTap extends Tap<JobConf, RecordReader, OutputCollector> implements FlowListener {
+public class NullTap extends Tap<Configuration, RecordReader, OutputCollector> implements FlowListener {
   private final TupleEntryCollector outCollector = new NullOutputCollector();
 
   final UUID id;
 
   public NullTap() {
-    super(new NullScheme<JobConf, RecordReader, OutputCollector, Object, Object>());
+    super(new NullScheme<Configuration, RecordReader, OutputCollector, Object, Object>());
     id = UUID.randomUUID();
   }
 
@@ -55,33 +54,34 @@ public class NullTap extends Tap<JobConf, RecordReader, OutputCollector> impleme
   public String getIdentifier() {
     return "NullTap-"+id;
   }
-
+  
   @Override
-  public TupleEntryIterator openForRead(FlowProcess<JobConf> flowProcess, RecordReader recordReader) throws IOException {
+  public TupleEntryIterator openForRead(FlowProcess<? extends Configuration> flowProcess, RecordReader recordReader) throws IOException {
     return new NullIterator(new Fields("null"));
   }
-
-  public TupleEntryCollector openForWrite(FlowProcess<JobConf> flowProcess, OutputCollector output) {
+  
+  @Override
+  public TupleEntryCollector openForWrite(FlowProcess<? extends Configuration> flowProcess, OutputCollector outputCollector) throws IOException {
     return outCollector;
   }
 
   @Override
-  public boolean createResource(JobConf conf) throws IOException {
+  public boolean createResource(Configuration conf) throws IOException {
     return true;
   }
 
   @Override
-  public boolean deleteResource(JobConf conf) throws IOException {
+  public boolean deleteResource(Configuration conf) throws IOException {
     return true;
   }
 
   @Override
-  public boolean resourceExists(JobConf conf) throws IOException {
+  public boolean resourceExists(Configuration conf) throws IOException {
     return true;
   }
 
   @Override
-  public long getModifiedTime(JobConf conf) throws IOException {
+  public long getModifiedTime(Configuration conf) throws IOException {
     return 0;
   }
 

@@ -16,16 +16,14 @@
 
 package com.liveramp.cascading_ext.counters;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import cascading.flow.Flow;
+import cascading.stats.FlowStats;
+import cascading.stats.FlowStepStats;
+import cascading.stats.hadoop.HadoopStepStats;
+import cascading.tap.Tap;
 import com.google.common.collect.Lists;
+import com.liveramp.commons.collections.nested_map.ThreeNestedMap;
+import com.liveramp.commons.collections.nested_map.TwoNestedMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapreduce.Job;
@@ -34,14 +32,8 @@ import org.apache.hadoop.mapreduce.counters.CounterGroupBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cascading.flow.Flow;
-import cascading.stats.FlowStats;
-import cascading.stats.FlowStepStats;
-import cascading.stats.hadoop.HadoopStepStats;
-import cascading.tap.Tap;
-
-import com.liveramp.commons.collections.nested_map.ThreeNestedMap;
-import com.liveramp.commons.collections.nested_map.TwoNestedMap;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Use these helper methods to safely retrieve Hadoop counters.  Sometimes counters
@@ -115,7 +107,7 @@ public class Counters {
   public static Long get(FlowStepStats step, Enum value) throws IOException {
     if (step instanceof HadoopStepStats) {
       HadoopStepStats hadoopStep = (HadoopStepStats)step;
-      return hadoopStep.getRunningJob().getCounters().getCounter(value);
+      return hadoopStep.getJobStatusClient().getCounters().getCounter(value);
     } else {
       return step.getCounterValue(value);
     }
@@ -234,9 +226,9 @@ public class Counters {
     ThreeNestedMap<String, String, String, Long> counters = new ThreeNestedMap<>();
     if (step instanceof HadoopStepStats) {
       HadoopStepStats hadoopStep = (HadoopStepStats)step;
-      RunningJob runningJob = hadoopStep.getRunningJob();
+      RunningJob runningJob = hadoopStep.getJobStatusClient();
       if (runningJob != null) {
-        counters.put(hadoopStep.getJobID(), getCounterMap(runningJob));
+        counters.put(runningJob.getID().toString(), getCounterMap(runningJob));
       } else {
         LOG.info("Skipping null running job.  Assume job failed on setup.");
       }
@@ -253,7 +245,7 @@ public class Counters {
   private static Long get(FlowStepStats step, String group, String value) throws IOException {
     if (step instanceof HadoopStepStats) {
       HadoopStepStats hadoopStep = (HadoopStepStats)step;
-      org.apache.hadoop.mapred.Counters.Group counterGroup = hadoopStep.getRunningJob().getCounters().getGroup(group);
+      org.apache.hadoop.mapred.Counters.Group counterGroup = hadoopStep.getJobStatusClient().getCounters().getGroup(group);
       if (counterGroup != null) {
         return counterGroup.getCounter(value);
       }
@@ -267,7 +259,7 @@ public class Counters {
   @Deprecated
   private static List<Counter> getStatsFromStep(FlowStepStats statsForStep) {
     if (statsForStep instanceof HadoopStepStats) {
-      return safeGetStatsFromRunningJob(((HadoopStepStats)statsForStep).getRunningJob());
+      return safeGetStatsFromRunningJob(((HadoopStepStats)statsForStep).getJobStatusClient());
     } else {
       return getStatsFromGenericStep(statsForStep);
     }
@@ -275,7 +267,7 @@ public class Counters {
 
   private static List<Counter> getStatsFromStep(FlowStepStats statsForStep, String group) throws IOException {
     if (statsForStep instanceof HadoopStepStats) {
-      return getStatsFromRunningJob(((HadoopStepStats)statsForStep).getRunningJob(), group);
+      return getStatsFromRunningJob(((HadoopStepStats)statsForStep).getJobStatusClient(), group);
     } else {
       return getStatsFromGenericStep(statsForStep, group);
     }

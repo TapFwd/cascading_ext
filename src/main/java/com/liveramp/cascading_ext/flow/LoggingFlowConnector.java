@@ -75,6 +75,6 @@ public class LoggingFlowConnector extends HadoopFlowConnector {
       definition.setRunID((String) getProperties().get(CascadingUtil.CASCADING_RUN_ID));
     }
 
-    return planner.buildFlow(definition);
+    return planner.buildFlow(definition, getRuleRegistrySet());
   }
 }

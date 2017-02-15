@@ -1,16 +1,5 @@
 package com.liveramp.cascading_ext;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.List;
-
-import com.google.common.collect.Lists;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.RecordReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import cascading.flow.FlowProcess;
 import cascading.scheme.SinkCall;
 import cascading.scheme.SourceCall;
@@ -19,6 +8,16 @@ import cascading.tap.TapException;
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
 import cascading.tuple.util.TupleViews;
+import com.google.common.collect.Lists;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.RecordReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.List;
 
 public class FixedWidthTextScheme extends TextLine {
 
@@ -54,15 +53,15 @@ public class FixedWidthTextScheme extends TextLine {
 
     return split.toArray(new String[split.size()]);
   }
-
+  
   @Override
-  public void sourcePrepare(FlowProcess<JobConf> flowProcess, SourceCall<Object[], RecordReader> sourceCall) {
+  public void sourcePrepare(FlowProcess<? extends Configuration> flowProcess, SourceCall<Object[], RecordReader> sourceCall) {
     super.sourcePrepare(flowProcess, sourceCall);
     sourceCall.getIncomingEntry().setTuple(TupleViews.createObjectArray());
   }
 
   @Override
-  public boolean source(FlowProcess<JobConf> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
+  public boolean source(FlowProcess<? extends Configuration> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
     Object[] context = sourceCall.getContext();
 
     while (sourceCall.getInput().next(context[0], context[1])) {
@@ -93,7 +92,7 @@ public class FixedWidthTextScheme extends TextLine {
   }
 
   @Override
-  public void sink(FlowProcess<JobConf> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
+  public void sink(FlowProcess<? extends Configuration> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
     throw new UnsupportedOperationException("Sinking to this tap is not allowed.");
   }
 

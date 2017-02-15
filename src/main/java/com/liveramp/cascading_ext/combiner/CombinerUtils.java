@@ -17,7 +17,6 @@
 package com.liveramp.cascading_ext.combiner;
 
 import cascading.tuple.Fields;
-import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntry;
 
 import java.util.ArrayList;
@@ -49,7 +48,7 @@ public class CombinerUtils {
     }
 
     for (int i = 0; i < selectorFieldsPos.size(); i++) {
-      outputTupleEntry.set(i, inputTupleEntry.getObject(selectorFieldsPos.get(i)));
+      outputTupleEntry.setObject(i, inputTupleEntry.getObject(selectorFieldsPos.get(i)));
     }
   }
 }

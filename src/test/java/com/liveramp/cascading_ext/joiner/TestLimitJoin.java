@@ -26,8 +26,8 @@ import cascading.tuple.Tuple;
 import com.liveramp.cascading_ext.BaseTestCase;
 import com.liveramp.cascading_ext.CascadingUtil;
 import com.liveramp.cascading_ext.tap.TapHelper;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
-import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,8 +36,8 @@ import java.util.*;
 
 public class TestLimitJoin extends BaseTestCase {
 
-  private Tap<JobConf, ?, ?> inputLhs;
-  private Tap<JobConf, ?, ?> inputRhs;
+  private Tap<Configuration, ?, ?> inputLhs;
+  private Tap<Configuration, ?, ?> inputRhs;
 
   @Before
   public void setUp() throws IOException {
@@ -61,7 +61,7 @@ public class TestLimitJoin extends BaseTestCase {
 
   @Test
   public void checkLimits() throws IOException {
-    Tap<JobConf, ?, ?> output = new Hfs(new SequenceFile(new Fields("a", "b", "d")), getTestRoot() + "/output");
+    Tap<Configuration, ?, ?> output = new Hfs(new SequenceFile(new Fields("a", "b", "d")), getTestRoot() + "/output");
 
     Pipe lhs = new Pipe("lhs");
 

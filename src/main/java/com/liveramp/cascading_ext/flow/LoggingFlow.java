@@ -16,28 +16,25 @@
 
 package com.liveramp.cascading_ext.flow;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import cascading.flow.FlowDef;
+import cascading.flow.hadoop.HadoopFlow;
+import cascading.flow.planner.PlatformInfo;
+import cascading.stats.FlowStepStats;
+import cascading.stats.hadoop.HadoopStepStats;
 import com.google.common.collect.Lists;
+import com.liveramp.cascading_ext.counters.Counters;
+import com.liveramp.commons.state.TaskFailure;
+import com.liveramp.commons.state.TaskSummary;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cascading.flow.Flow;
-import cascading.flow.FlowDef;
-import cascading.flow.hadoop.HadoopFlow;
-import cascading.flow.planner.PlatformInfo;
-import cascading.stats.FlowStepStats;
-import cascading.stats.hadoop.HadoopStepStats;
-
-import com.liveramp.cascading_ext.counters.Counters;
-import com.liveramp.commons.state.TaskFailure;
-import com.liveramp.commons.state.TaskSummary;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Delegates actual flow operations to a flow that gets passed in, but performs some additional logging when the job
@@ -75,7 +72,7 @@ public class LoggingFlow extends HadoopFlow {
       for (FlowStepStats stat : stepStats) {
 
         try {
-          JobID jobid = ((HadoopStepStats)stat).getRunningJob().getID();
+          JobID jobid = ((HadoopStepStats)stat).getJobStatusClient().getID();
           String jtID = jobid.getJtIdentifier();
           String jobID = Integer.toString(jobid.getId());
           jobIDs.add(jtID + "_" + jobID);

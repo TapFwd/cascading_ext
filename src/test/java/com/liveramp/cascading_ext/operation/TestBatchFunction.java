@@ -1,18 +1,5 @@
 package com.liveramp.cascading_ext.operation;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.google.common.collect.Lists;
-import com.twitter.maple.tap.MemorySourceTap;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.RecordReader;
-import org.junit.Test;
-
 import cascading.flow.Flow;
 import cascading.flow.FlowProcess;
 import cascading.pipe.Each;
@@ -24,9 +11,20 @@ import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntry;
 import cascading.tuple.TupleEntryIterator;
-
+import com.google.common.collect.Lists;
 import com.liveramp.cascading_ext.BaseTestCase;
 import com.liveramp.cascading_ext.CascadingUtil;
+import com.twitter.maple.tap.MemorySourceTap;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.RecordReader;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -49,7 +47,7 @@ public class TestBatchFunction extends BaseTestCase {
     Pipe pipe = new Pipe("batch-pipe");
     pipe = new Each(pipe, new AnnotateWithSizeOfCurrentBatch(4));
 
-    Tap<JobConf, RecordReader, OutputCollector> dst = new Lfs(new SequenceFile(OUT_FIELD), getTestRoot()+"/out");
+    Tap<Configuration, RecordReader, OutputCollector> dst = new Lfs(new SequenceFile(OUT_FIELD), getTestRoot()+"/out");
 
     Flow f = CascadingUtil.get().getFlowConnector().connect(src, dst, pipe);
     f.complete();
