@@ -19,7 +19,7 @@ package com.liveramp.cascading_ext.flow;
 import cascading.flow.Flow;
 import cascading.flow.FlowDef;
 import cascading.flow.FlowStepStrategy;
-import cascading.flow.hadoop.HadoopFlowConnector;
+import cascading.flow.hadoop2.Hadoop2MR1FlowConnector;
 import cascading.pipe.Pipe;
 import cascading.tap.Tap;
 import com.liveramp.cascading_ext.CascadingUtil;
@@ -28,7 +28,7 @@ import org.apache.hadoop.mapred.JobConf;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class LoggingFlowConnector extends HadoopFlowConnector {
+public class LoggingFlowConnector extends Hadoop2MR1FlowConnector {
 
   private static final Pattern CHECKPOINT_SAFE_NAME = Pattern.compile("[a-zA-Z0-9\\-_]+");
 
